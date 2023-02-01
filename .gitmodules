@@ -1,0 +1,6 @@
+[submodule "airlift-starter-kit"]
+	path = airlift-starter-kit
+	url = https://github.com/airlift-challenge/airlift-starter-kit
+[submodule "airlift"]
+	path = airlift
+	url = https://github.com/airlift-challenge/airlift

@@ -1,7 +1,6 @@
-from solution.mysolution import MySolution
+from mysolution import MySolution
 import time
 from gym import logger
-
 from airlift.envs.plane_types import PlaneType
 from airlift.envs.generators.cargo_generators import DynamicCargoGenerator
 from airlift.envs.airlift_env import AirliftEnv
