@@ -5,7 +5,7 @@ import networkx as nx
 from time import sleep
 import matplotlib.pyplot as plt
 import numpy as np
-import cuopt
+# import cuopt
 
 class MySolution(Solution):
     """
@@ -43,7 +43,7 @@ class MySolution(Solution):
                 weights.append(self.multidigraph.adj[node_one][node_two][0]["time"])
         weights = np.array(weights)
 
-        w_matrix = routing.WaypointMatrix(offsets, edges, weights)
+        # w_matrix = routing.WaypointMatrix(offsets, edges, weights)
 
         nx.draw_networkx(self.multidigraph, with_labels = True)
         plt.show()
