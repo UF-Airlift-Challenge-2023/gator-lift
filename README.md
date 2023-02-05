@@ -9,10 +9,18 @@ git switch graph-formatting
 git submodule update --init --recursive
 ```
 
+### Activate Conda
+```
+conda activate airlift-solution
+```
+
 ## Install airlift python module
 ```
-cd airlift
-pip install -e .
+pip install -e airlift/.
+```
+### From Spider
+```
+%pip install -e airlift/.
 ```
 
 ## Used to download the test scenarios
@@ -24,4 +32,8 @@ tar -xf airlift_test_scenarios.zip -C airlift-starter-kit/scenarios
 ## Used to run eval_solution.py and confirm install
 ```
 python airlift-starter-kit/eval_solution.py --scenario-folder airlift-starter-kit/scenarios
+```
+### From Spider
+```
+%run airlift-starter-kit/eval_solution.py --scenario-folder airlift-starter-kit/scenarios
 ```
