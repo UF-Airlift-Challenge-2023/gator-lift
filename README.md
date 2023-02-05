@@ -37,3 +37,13 @@ python airlift-starter-kit/eval_solution.py --scenario-folder airlift-starter-ki
 ```
 %run airlift-starter-kit/eval_solution.py --scenario-folder airlift-starter-kit/scenarios
 ```
+
+## Run current solution code
+```
+python airlifttest.py
+```
+
+### From Spider
+```
+%run airlifttest.py
+```
