@@ -40,7 +40,6 @@ class MySolution(Solution):
         weights = []
         for idx, node_one in enumerate(list(dict(self.multidigraph.adj).keys())):
             for node_two in list(dict(self.multidigraph.adj)[node_one].keys()):
-                print(self.multidigraph.adj[node_one][node_two])
                 weights.append(self.multidigraph.adj[node_one][node_two][0]["time"])
         weights = np.array(weights)
 
