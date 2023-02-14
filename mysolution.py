@@ -24,29 +24,37 @@ class MySolution(Solution):
         self.path = {a: None for a in self.agents}
         self.whole_path = {a: None for a in self.agents}
         self.multidigraph = oh.get_multidigraph(state)
-
-        edges = np.array(list(edge[1]-1 for edge in list(self.multidigraph.edges)))
-        current_node = 0
-
-        offsets = [0]
-        for idx, edge in enumerate(list(self.multidigraph.edges)):
-            if edge[0]-1 != current_node:
-                current_node = edge[0]-1
-                offsets.append(idx)
-
-        offsets.append(len(edges))
-        offsets = np.array(offsets)
-        
-        weights = []
-        for idx, node_one in enumerate(list(dict(self.multidigraph.adj).keys())):
-            for node_two in list(dict(self.multidigraph.adj)[node_one].keys()):
-                print(self.multidigraph.adj[node_one][node_two])
-                weights.append(self.multidigraph.adj[node_one][node_two][0]["time"])
-        weights = np.array(weights)
-
-        # w_matrix = routing.WaypointMatrix(offsets, edges, weights)
-
+        self.plane_type_waypoints = {}
         nx.draw_networkx(self.multidigraph, with_labels = True)
+        plt.show()
+        for plane_type in state["plane_types"]:
+            self.plane_type_waypoints[plane_type] = {}
+            self.plane_type_waypoints[plane_type]["edges"] = [] 
+        colors = ["blue", "orange"]
+        for airplane_type in range(len(state["route_map"])):
+            self.multidigraph = state["route_map"][airplane_type]
+            edges = np.array(list(edge[1]-1 for edge in list(self.multidigraph.edges)))
+            current_node = 0
+
+            offsets = [0]
+            for idx, edge in enumerate(list(self.multidigraph.edges)):
+                if edge[0]-1 != current_node:
+                    current_node = edge[0]-1
+                    offsets.append(idx)
+
+            offsets.append(len(edges))
+            offsets = np.array(offsets)
+            
+            weights = []
+            for idx, node_one in enumerate(list(dict(self.multidigraph.adj).keys())):
+                for node_two in list(dict(self.multidigraph.adj)[node_one].keys()):
+                    print(self.multidigraph.adj[node_one][node_two])
+                    weights.append(self.multidigraph.adj[node_one][node_two]["time"])
+            weights = np.array(weights)
+
+            # w_matrix = routing.WaypointMatrix(offsets, edges, weights)
+
+            nx.draw_networkx(self.multidigraph, with_labels = True, edge_color=colors[airplane_type])
         plt.show()
         self._full_delivery_paths = {}
 
@@ -54,7 +62,6 @@ class MySolution(Solution):
         self._action_helper = ActionHelper(self._np_random)
 
     def policies(self, obs, dones):
-        print(obs)
         # Use the acion helper to generate an action
         return self._action_helper.sample_valid_actions(obs)
 
