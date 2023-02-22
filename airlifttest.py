@@ -18,9 +18,9 @@ from airlift.envs import PerlinMapGenerator, PlainMapGenerator
 
 working_capacity = 2
 processing_time = 10
-num_airports = 20
-num_cargo = 600
-num_agents = 200
+num_airports = 10
+num_cargo = 50
+num_agents = 100
 num_drop_off_airports = 3
 num_pick_up_airports = 3
 soft_deadline_multiplier = 25
