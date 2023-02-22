@@ -47,15 +47,15 @@ class MySolution(Solution):
         self.multidigraph = oh.get_multidigraph(state)
         self.plane_type_waypoints = {}
    
-        self.fleet_data = {a: None for a in self.agents}
+        self.fleet_data = {"capacities":[],"vehicle_locations":[],"vehicle_types": [], "drop_return_trips" : []}
+
         for agent in state["agents"]:
-            self.fleet_data["capacities"].append(agent["max_weight"])
-            self.fleet_data["current_airports"].append(agent["current_airport"])
-            self.fleet_data["current_weights"].append(agent["current_weight"])
-            self.fleet_data["destinations"].append(agent["destination"])
-            self.fleet_data["plane_types"].append(agent["plane_type"])
-            self.fleet_data["start_airports"].append(agent["start_airport"])
+            self.fleet_data["capacities"].append(state["agents"][agent]["max_weight"])
+            self.fleet_data["vehicle_locations"].append([state["agents"][agent]["current_airport"],state["agents"][agent]["destination"]])
+            self.fleet_data["vehicle_types"].append(state["agents"][agent]["plane_type"])
+            self.fleet_data["drop_return_trips"].append(True)
             
+
         # nx.draw_networkx(self.multidigraph, with_labels = True)
         # plt.show()
         for plane_type in state["plane_types"]:
