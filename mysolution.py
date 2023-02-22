@@ -48,16 +48,16 @@ class MySolution(Solution):
         self.plane_type_waypoints = {}
    
         self.fleet_data = {a: None for a in self.agents}
-        for a in self.fleet_data:
-            self.fleet_data[a] = {}
-            self.fleet_data[a]["curr_cap"] = state["agents"][a]["current_weight"]
-            self.fleet_data[a]["curr_airport"]=state["agents"][a]["current_airport"]
-            self.fleet_data[a]["end_airport"]=state["agents"][a]["destination"]
-            self.fleet_data[a]["plane_type"]=state["agents"][a]["plane_type"]
-            self.fleet_data[a]["max_weight"]=state["agents"][a]["max_weight"]
-
-        nx.draw_networkx(self.multidigraph, with_labels = True)
-        plt.show()
+        for agent in state["agents"]:
+            self.fleet_data["capacities"].append(agent["max_weight"])
+            self.fleet_data["current_airports"].append(agent["current_airport"])
+            self.fleet_data["current_weights"].append(agent["current_weight"])
+            self.fleet_data["destinations"].append(agent["destination"])
+            self.fleet_data["plane_types"].append(agent["plane_type"])
+            self.fleet_data["start_airports"].append(agent["start_airport"])
+            
+        # nx.draw_networkx(self.multidigraph, with_labels = True)
+        # plt.show()
         for plane_type in state["plane_types"]:
             self.waypoints[plane_type.id] = {"edges": [], "offsets": [], "weights": []}
 
