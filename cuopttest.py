@@ -45,6 +45,7 @@ fleet_data = {
     "vehicle_locations": [[0, 0], [1, 1], [0, 1], [1, 0], [0, 0]],
     "capacities": [[10, 12, 15, 8, 10]],
     "vehicle_time_windows": [[0, 80], [1, 40], [3, 30], [5, 80], [20, 100]],
+    "vehicle_types": [0, 1, 0, 0, 0],
 }
 
 fleet_response = requests.post(

@@ -16,13 +16,13 @@ from airlift.envs.renderer import FlatRenderer
 from airlift.solutions.baselines import ShortestPath
 from airlift.envs import PerlinMapGenerator, PlainMapGenerator
 
-working_capacity = 2
+working_capacity = 5
 processing_time = 10
-num_airports = 12
-num_cargo = 50
-num_agents = 10
-num_drop_off_airports = 3
-num_pick_up_airports = 3
+num_airports = 20
+num_cargo = 20
+num_agents = 15
+num_drop_off_airports = 5
+num_pick_up_airports = 5
 soft_deadline_multiplier = 25
 hard_deadline_multiplier = 50
 
@@ -53,8 +53,8 @@ def create_env(showroutes=False):
                  working_capacity=working_capacity,
                  make_drop_off_area=True,
                  make_pick_up_area=True,
-                 num_drop_off_airports=1,
-                 num_pick_up_airports=1,
+                 num_drop_off_airports=num_drop_off_airports,
+                 num_pick_up_airports=num_pick_up_airports,
                  mapgen=PerlinMapGenerator()),
              route_generator=RouteByDistanceGenerator(
                  malfunction_generator=EventIntervalGenerator(
