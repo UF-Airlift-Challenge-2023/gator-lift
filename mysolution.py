@@ -7,7 +7,7 @@ from time import sleep
 import matplotlib.pyplot as plt
 import numpy as np
 # import cuopt
-import requests
+# import requests
 import pandas as pd
 
 def show_results(res):
@@ -49,12 +49,15 @@ class MySolution(Solution):
         # Create an action helper using our random number generator
         self._action_helper = ActionHelper(self._np_random)
         self.new_change = True
+        self.new_state = self.get_state(obs)
 
     def policies(self, obs, dones):
         if(self.new_change):
-            actions = self.process_state(obs)
+            self.solver_response = self.process_state(obs)
             self.new_change = False
+            
         # Use the acion helper to generate an action
+
         # return None
         action = self._action_helper.sample_valid_actions(obs)
         # 'a_0' : {'process': 0, 'cargo_to_load': [], 'cargo_to_unload': [], 'destination': 0}
@@ -62,6 +65,13 @@ class MySolution(Solution):
 
     def process_state(self, obs):
         state = self.get_state(obs)
+        self.multidigraph = oh.get_multidigraph(state)
+        if (oh.get_multidigraph(self.new_state) != self.multidigraph): #if the map changes, new change is true
+            self.new_change = True
+        nodes = list(dict(self.multidigraph.adj).keys())
+        for nodez in nodes:
+            if not nodez.airport_has_capacity():
+                self.new_change = True
         task_locations = []#[0]
         delivery_pairs = []
         demand = []#[0]
@@ -85,9 +95,8 @@ class MySolution(Solution):
         self.cargo_assignments = {a: None for a in self.agents}
         self.path = {a: None for a in self.agents}
         self.whole_path = {a: None for a in self.agents}
-        self.multidigraph = oh.get_multidigraph(state)
         self.plane_type_waypoints = {}
-   
+
         self.fleet_data = {"capacities":[],"vehicle_locations":[],"vehicle_types": [], "vehicle_ids":[], "drop_return_trips" : []}
 
         for agent in state["agents"]:
@@ -107,7 +116,7 @@ class MySolution(Solution):
         for plane_type in state["plane_types"]:
             self.waypoints[plane_type.id] = {"edges": [], "offsets": [], "weights": []}
 
-        nodes = list(dict(self.multidigraph.adj).keys())
+        
         for node in nodes:
             connections = list(dict(self.multidigraph.adj[node]).keys())
             for plane_type_id in list(self.waypoints.keys()):
@@ -119,6 +128,7 @@ class MySolution(Solution):
                         if(self.multidigraph.adj[node][connection][plane_type_id]["route_available"]):
                             self.waypoints[plane_type_id]["edges"].append(connection-1)
                             self.waypoints[plane_type_id]["weights"].append(self.multidigraph.adj[node][connection][plane_type_id]["time"])
+                            if self.multidigraph.adj[node][connection][plane_type_id]["time"]
         for plane_type_id in list(self.waypoints.keys()):
             self.waypoints[plane_type_id]["offsets"].append(len(self.waypoints[plane_type_id]["edges"]))
 
@@ -182,6 +192,9 @@ class MySolution(Solution):
         print(f"SOLVER RESPONSE: {solver_response.json()}\n")
 
         show_results(solver_response.json()["response"]["solver_response"])
+
+
+
 
         return state
 
