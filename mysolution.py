@@ -50,14 +50,20 @@ class MySolution(Solution):
         super().reset(obs, observation_spaces, action_spaces, seed)
         # Create an action helper using our random number generator
         self._action_helper = ActionHelper(self._np_random)
-        self.new_change = True
+        self.new_change = False
         self.new_state = self.get_state(obs)
 
     def policies(self, obs, dones):
         if(self.new_change):
             # self.solver_response = self.process_state(obs)
             # self.new_state = self.get_state(obs)
+            # print(self.new_state)
             self.new_change = False
+        
+        # IF THERE IS NEW CARGO, THE NEW CHANGE BOOLEAN IS UPDATED TO TRUE.
+        if (len(self.get_state(obs)["event_new_cargo"]) != 0):
+            self.new_change = True
+            print("New cargo detected!")
         
         # my_action = self.process_response(obs)
         
