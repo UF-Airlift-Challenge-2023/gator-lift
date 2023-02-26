@@ -7,7 +7,7 @@ from time import sleep
 import matplotlib.pyplot as plt
 import numpy as np
 #import cuopt
-#import requests
+import requests
 import pandas as pd
 from math import floor
 
@@ -44,10 +44,10 @@ class MySolution(Solution):
     """
     def __init__(self):
         super().__init__()
-
     def reset(self, obs, observation_spaces=None, action_spaces=None, seed=None):
         # Currently, the evaluator will NOT pass in an observation space or action space (they will be set to None)
         super().reset(obs, observation_spaces, action_spaces, seed)
+
         clear_request = requests.delete(
             url + "clear_optimization_data", params=None, timeout=30
         )
@@ -62,6 +62,8 @@ class MySolution(Solution):
             self.solver_response = self.process_state(obs)
             self.new_state = self.get_state(obs)
             self.new_change = False
+
+        
         
         my_action = self.process_response(obs)
         
