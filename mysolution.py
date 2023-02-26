@@ -63,6 +63,12 @@ class MySolution(Solution):
             self.new_state = self.get_state(obs)
             self.new_change = False
 
+        # state = self.get_state(obs)
+        # for type in state["route_map"]:
+        #     for node in list(dict(state["route_map"][type].adj).keys()):
+        #         for connection in list(dict(state["route_map"][type].adj[node]).keys()):
+        #             if(state["route_map"][type].adj[node][connection]["mal"]!=0):
+        #                 print(node, connection, state["route_map"][type].adj[node][connection]["mal"])
         
         
         my_action = self.process_response(obs)
@@ -219,11 +225,12 @@ class MySolution(Solution):
                 conn_by_plane_type = self.multidigraph.adj[node][connection]
                 for plane_type_id in list(self.waypoints.keys()):
                     if(plane_type_id in conn_by_plane_type):
-                        if(self.multidigraph.adj[node][connection][plane_type_id]["route_available"]):
-                            weight = (self.multidigraph.adj[node][connection][plane_type_id]["time"]+state["scenario_info"][0].processing_time)+20
-                            weights[connection-1] = weight
-                            self.waypoints[plane_type_id]["edges"].append(connection-1)
-                            self.waypoints[plane_type_id]["weights"].append(weight)
+                        weight = (self.multidigraph.adj[node][connection][plane_type_id]["time"]+state["scenario_info"][0].processing_time)
+                        if not self.multidigraph.adj[node][connection][plane_type_id]["route_available"]:
+                            weight += state["route_map"][type].adj[node][connection]["mal"]
+                        weights[connection-1] = weight
+                        self.waypoints[plane_type_id]["edges"].append(connection-1)
+                        self.waypoints[plane_type_id]["weights"].append(weight)
             
             for weight in weights:
                 # print with 5 characters
