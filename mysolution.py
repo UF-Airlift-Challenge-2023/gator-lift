@@ -30,7 +30,7 @@ def show_results(res):
     print("\n======================= End ===============================\n")
     
 
-ip = "951f-129-222-85-41.ngrok.io"
+ip = "e455-129-222-85-41.ngrok.io"
 port = "80"
 url = "https://" + ip + "/cuopt/"
 
@@ -58,6 +58,7 @@ class MySolution(Solution):
             self.solver_response = self.process_state(obs)
             self.new_state = self.get_state(obs)
             self.new_change = False
+        
         my_action = self.process_response(obs)
         
         # Use the acion helper to generate an action
@@ -139,14 +140,7 @@ class MySolution(Solution):
 
     def process_state(self, obs):
         state = self.get_state(obs)
-        self.multidigraph = oh.get_multidigraph(state)
-        if (oh.get_multidigraph(self.new_state) != self.multidigraph): #if the map changes, new change is true
-            self.new_change = True
-        
-        for agent in state["agents"]:
-            if state["agents"][agent]["current_airport"].airport_has_capacity():
-                self.new_change = True
-        
+        self.state = state
         task_locations = []#[0]
         delivery_pairs = []
         demand = []#[0]
@@ -278,8 +272,10 @@ class MySolution(Solution):
             url + "get_optimized_routes", params=solve_parameters, timeout=30
         )
         
-
-        response = solver_response.json()["response"]["solver_response"]
+        try:
+            response = solver_response.json()["response"]["solver_response"]
+        except:
+            print(solver_response)
 
         for vehicle in response["vehicle_data"]:
             response["vehicle_data"][vehicle]["task_id"] = [floor(x/2) for x in response["vehicle_data"][vehicle]["task_id"]]
