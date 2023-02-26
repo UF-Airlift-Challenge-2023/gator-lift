@@ -30,9 +30,9 @@ def show_results(res):
     print("\n======================= End ===============================\n")
     
 
-ip = "127.0.0.1"
-port = "5000"
-url = "http://" + ip + ":" + port + "/cuopt/"
+ip = "e455-129-222-85-41.ngrok.io"
+port = "80"
+url = "https://" + ip + "/cuopt/"
 
 data_params = {"return_data_state": False}
 
@@ -56,6 +56,7 @@ class MySolution(Solution):
         if(self.new_change):
             self.solver_response = self.process_state(obs)
             self.new_change = False
+        
         my_action = self.process_response(obs)
         
         # Use the acion helper to generate an action
@@ -136,6 +137,7 @@ class MySolution(Solution):
 
     def process_state(self, obs):
         state = self.get_state(obs)
+        self.state = state
         task_locations = []#[0]
         delivery_pairs = []
         demand = []#[0]
@@ -268,8 +270,10 @@ class MySolution(Solution):
             url + "get_optimized_routes", params=solve_parameters, timeout=30
         )
         
-
-        response = solver_response.json()["response"]["solver_response"]
+        try:
+            response = solver_response.json()["response"]["solver_response"]
+        except:
+            print(solver_response)
 
         for vehicle in response["vehicle_data"]:
             response["vehicle_data"][vehicle]["task_id"] = [floor(x/2) for x in response["vehicle_data"][vehicle]["task_id"]]
