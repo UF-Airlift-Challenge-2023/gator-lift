@@ -7,7 +7,7 @@ from time import sleep
 import matplotlib.pyplot as plt
 import numpy as np
 #import cuopt
-import requests
+#import requests
 import pandas as pd
 from math import floor
 
@@ -141,6 +141,7 @@ class MySolution(Solution):
     def process_state(self, obs):
         state = self.get_state(obs)
         self.state = state
+        self.multidigraph = oh.get_multidigraph(state)
         task_locations = []#[0]
         delivery_pairs = []
         demand = []#[0]
