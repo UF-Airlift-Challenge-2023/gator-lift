@@ -68,10 +68,11 @@ class MySolution(Solution):
         self.multidigraph = oh.get_multidigraph(state)
         if (oh.get_multidigraph(self.new_state) != self.multidigraph): #if the map changes, new change is true
             self.new_change = True
-        nodes = list(dict(self.multidigraph.adj).keys())
-        for nodez in nodes:
-            if not nodez.airport_has_capacity():
+        
+        for agent in state["agents"]:
+            if state["agents"][agent]["current_airport"].airport_has_capacity():
                 self.new_change = True
+        
         task_locations = []#[0]
         delivery_pairs = []
         demand = []#[0]
@@ -128,7 +129,6 @@ class MySolution(Solution):
                         if(self.multidigraph.adj[node][connection][plane_type_id]["route_available"]):
                             self.waypoints[plane_type_id]["edges"].append(connection-1)
                             self.waypoints[plane_type_id]["weights"].append(self.multidigraph.adj[node][connection][plane_type_id]["time"])
-                            if self.multidigraph.adj[node][connection][plane_type_id]["time"]
         for plane_type_id in list(self.waypoints.keys()):
             self.waypoints[plane_type_id]["offsets"].append(len(self.waypoints[plane_type_id]["edges"]))
 
