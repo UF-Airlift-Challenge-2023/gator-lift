@@ -6,8 +6,8 @@ import networkx as nx
 from time import sleep
 import matplotlib.pyplot as plt
 import numpy as np
-# import cuopt
-import requests
+#import cuopt
+#import requests
 import pandas as pd
 from math import floor
 
@@ -55,15 +55,18 @@ class MySolution(Solution):
         # Create an action helper using our random number generator
         self._action_helper = ActionHelper(self._np_random)
         self.new_change = True
+        self.new_state = self.get_state(obs)
 
     def policies(self, obs, dones):
         if(self.new_change):
             self.solver_response = self.process_state(obs)
+            self.new_state = self.get_state(obs)
             self.new_change = False
         
         my_action = self.process_response(obs)
         
         # Use the acion helper to generate an action
+
         # return None
         random_action = self._action_helper.sample_valid_actions(obs)
         # 'a_0' : {'process': 0, 'cargo_to_load': [], 'cargo_to_unload': [], 'destination': 0}
@@ -142,6 +145,7 @@ class MySolution(Solution):
     def process_state(self, obs):
         state = self.get_state(obs)
         self.state = state
+        self.multidigraph = oh.get_multidigraph(state)
         task_locations = []#[0]
         delivery_pairs = []
         demand = []#[0]
@@ -171,9 +175,8 @@ class MySolution(Solution):
         self.cargo_assignments = {a: None for a in self.agents}
         self.path = {a: None for a in self.agents}
         self.whole_path = {a: None for a in self.agents}
-        self.multidigraph = oh.get_multidigraph(state)
         self.plane_type_waypoints = {}
-   
+
         self.fleet_data = {"capacities":[],"vehicle_locations":[],"vehicle_types": [], "vehicle_ids":[], "drop_return_trips" : []}
 
         for agent in state["agents"]:
