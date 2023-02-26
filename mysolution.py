@@ -60,7 +60,44 @@ class MySolution(Solution):
             print("New cargo detected!")
 
         # IF THERE IS A NEW ROUTE, THE NEW CHANGE BOOLEAN IS UPDATED TO TRUE.
-        # ...
+
+        '''
+        1. gather the number of planes at each airport and NOT IN THE AIR.
+                state/agents has a list of all planes
+                within each plane, there is an attribute called current airport
+        '''
+
+        occupied_airports = list()
+        for plane in obs:
+            current_plane = obs[plane]
+            if current_plane['state'] != 2: # not 2 = at an airport somewhere
+                occupied_airports.append(current_plane['current_airport'])
+            else: # 2 = in flight to destination, therefore not in any airport
+                occupied_airports.append(current_plane['destination'])
+
+        '''
+        2. iterate through list, perform calculation
+        --> if numPlanes(airport) >= working_capacity for all airports
+        ----> state[scenarioInfo][0][working_capacity]
+        ----> then edge = P*(1 + numPlanes(airport)//processingTime)
+        '''
+
+        # determine which airports are at capacity
+            # obtain processing time and working capacity
+            # index 0 of scenario is processing time, index 1 is working capacity
+        processing_time = self.get_state(obs)['scenario_info'][0][0]
+        working_capacity = self.get_state(obs)['scenario_info'][0][1]
+
+        for airport_number in occupied_airports:
+            # number of planes per airport
+            numPlanes = occupied_airports.count(airport_number)
+            if numPlanes > working_capacity:
+                difference = numPlanes - working_capacity
+                extra_wait_time = processing_time * (1 + (numPlanes // working_capacity))
+
+        '''
+        3. alter the weight of an edge for an inbound plane
+        '''
 
         if(self.new_change):
             # self.solver_response = self.process_state(obs)
