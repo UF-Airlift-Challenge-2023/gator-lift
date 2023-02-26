@@ -6,8 +6,8 @@ import networkx as nx
 from time import sleep
 import matplotlib.pyplot as plt
 import numpy as np
-#import cuopt
-#import requests
+# import cuopt
+import requests
 import pandas as pd
 from math import floor
 
@@ -55,18 +55,18 @@ class MySolution(Solution):
 
     def policies(self, obs, dones):
         if(self.new_change):
-            self.solver_response = self.process_state(obs)
-            self.new_state = self.get_state(obs)
+            # self.solver_response = self.process_state(obs)
+            # self.new_state = self.get_state(obs)
             self.new_change = False
         
-        my_action = self.process_response(obs)
+        # my_action = self.process_response(obs)
         
         # Use the acion helper to generate an action
 
         # return None
         random_action = self._action_helper.sample_valid_actions(obs)
         # 'a_0' : {'process': 0, 'cargo_to_load': [], 'cargo_to_unload': [], 'destination': 0}
-        return my_action
+        return random_action
 
     def process_response(self, obs):
         actions = {}

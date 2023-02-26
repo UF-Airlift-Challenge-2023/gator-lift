@@ -1,6 +1,6 @@
 from mysolution import MySolution
 import time
-from gym import logger
+# from gym import logger
 from airlift.envs.plane_types import PlaneType
 from airlift.envs.generators.cargo_generators import DynamicCargoGenerator
 from airlift.envs.airlift_env import AirliftEnv
@@ -10,7 +10,7 @@ from airlift.envs.generators.airport_generators import RandomAirportGenerator
 from airlift.envs.generators.route_generators import RouteByDistanceGenerator
 from airlift.envs.generators.map_generators import PerlinMapGenerator
 from airlift.envs.generators.world_generators import AirliftWorldGenerator
-import click
+# import click
 
 from airlift.envs.renderer import FlatRenderer
 from airlift.solutions.baselines import ShortestPath
@@ -26,8 +26,8 @@ num_pick_up_airports = 5
 soft_deadline_multiplier = 25
 hard_deadline_multiplier = 50
 
-num_dynamic_cargo = 0 #5
-dynamic_cargo_generation_rate = 0 #1/100
+num_dynamic_cargo = 5
+dynamic_cargo_generation_rate = 1/100 #1/100
 malfunction_rate = 1 / 300
 min_duration = 10
 max_duration = 100
