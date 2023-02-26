@@ -30,7 +30,7 @@ def show_results(res):
     print("\n======================= End ===============================\n")
     
 
-ip = "e455-129-222-85-41.ngrok.io"
+ip = "6801-70-171-49-181.ngrok.io"
 port = "80"
 url = "https://" + ip + "/cuopt/"
 
@@ -48,6 +48,10 @@ class MySolution(Solution):
     def reset(self, obs, observation_spaces=None, action_spaces=None, seed=None):
         # Currently, the evaluator will NOT pass in an observation space or action space (they will be set to None)
         super().reset(obs, observation_spaces, action_spaces, seed)
+        clear_request = requests.delete(
+            url + "clear_optimization_data", params=None, timeout=30
+        )
+        clear_request.json()
         # Create an action helper using our random number generator
         self._action_helper = ActionHelper(self._np_random)
         self.new_change = True
@@ -144,6 +148,7 @@ class MySolution(Solution):
         task_ids = []
         task_time_windows = []#[[0,100000]]
         processing_time = []
+        penalties = []
         for cargo in state["active_cargo"]:
             if(cargo.is_available):
                 if(cargo.location!=0):
@@ -160,6 +165,8 @@ class MySolution(Solution):
                     task_ids.append(str(cargo.id))
                     processing_time.append(state["scenario_info"][0].processing_time)
                     processing_time.append(state["scenario_info"][0].processing_time)
+                    penalties.append(100)
+                    penalties.append(100)
         
         self.cargo_assignments = {a: None for a in self.agents}
         self.path = {a: None for a in self.agents}
@@ -172,7 +179,10 @@ class MySolution(Solution):
         for agent in state["agents"]:
             if(state["agents"][agent]["state"] in [PlaneState.READY_FOR_TAKEOFF, PlaneState.WAITING]):
                 self.fleet_data["capacities"].append(state["agents"][agent]["max_weight"])
-                self.fleet_data["vehicle_locations"].append([state["agents"][agent]["current_airport"]-1,state["agents"][agent]["destination"]])
+                starting_position = state["agents"][agent]["current_airport"]-1
+                if(state["agents"][agent]["destination"]!=0):
+                    starting_position = state["agents"][agent]["destination"]-1
+                self.fleet_data["vehicle_locations"].append([starting_position,state["agents"][agent]["destination"]])
                 self.fleet_data["vehicle_types"].append(state["agents"][agent]["plane_type"])
                 self.fleet_data["vehicle_ids"].append(agent)
                 self.fleet_data["drop_return_trips"].append(True)
@@ -187,17 +197,35 @@ class MySolution(Solution):
             self.waypoints[plane_type.id] = {"edges": [], "offsets": [], "weights": []}
 
         nodes = list(dict(self.multidigraph.adj).keys())
+        print("  ", end =" ")
         for node in nodes:
+            print("{:>3}".format(node), end =" ")
+        print()
+
+        for node in nodes:
+            print("{:>3}".format(node), end =" ")
             connections = list(dict(self.multidigraph.adj[node]).keys())
             for plane_type_id in list(self.waypoints.keys()):
                 self.waypoints[plane_type_id]["offsets"].append(len(self.waypoints[plane_type_id]["edges"]))
+            # size of weights is length of nodes.
+            weights = [0]*len(nodes)
+
             for connection in connections:
                 conn_by_plane_type = self.multidigraph.adj[node][connection]
                 for plane_type_id in list(self.waypoints.keys()):
                     if(plane_type_id in conn_by_plane_type):
                         if(self.multidigraph.adj[node][connection][plane_type_id]["route_available"]):
+                            weight = (self.multidigraph.adj[node][connection][plane_type_id]["time"]+state["scenario_info"][0].processing_time)+20
+                            weights[connection-1] = weight
                             self.waypoints[plane_type_id]["edges"].append(connection-1)
-                            self.waypoints[plane_type_id]["weights"].append(self.multidigraph.adj[node][connection][plane_type_id]["time"])
+                            self.waypoints[plane_type_id]["weights"].append(weight)
+            
+            for weight in weights:
+                # print with 5 characters
+                # and right align it
+                print("{:>3}".format(weight), end =" ")
+            print()
+
         for plane_type_id in list(self.waypoints.keys()):
             self.waypoints[plane_type_id]["offsets"].append(len(self.waypoints[plane_type_id]["edges"]))
 
@@ -211,7 +239,8 @@ class MySolution(Solution):
             "task_time_windows": task_time_windows,
             "pickup_and_delivery_pairs": delivery_pairs,
             "task_ids": task_ids,
-            "service_time": processing_time
+            # "service_time": processing_time,
+            "penalties": penalties
         }
 
         self.fleet_data = self.fleet_data
@@ -237,16 +266,17 @@ class MySolution(Solution):
         # print(f"TASK ENDPOINT RESPONSE: {task_response.json()}\n")
 
 
-        solver_config = {"time_limit": 10, "number_of_climbers": 128, 
+        solver_config = {"time_limit": 10, "number_of_climbers": 256, 
         "objectives": {
             "vehicle" : 0,
             "cost" : 1,
             "travel_time" : 0,
-            "cumul_package_time" : 1,
-            "cumul_earliest_diff" : 1,
-            "variance_route_size" : 0,
+            "cumul_package_time" : 4,
+            "cumul_earliest_diff" : 0,
+            "variance_route_size" : 4,
             "variance_route_service_time" : 0
-        }
+        },
+        "solution_scope":0
         }
 
         solver_config_response = requests.post(
@@ -270,6 +300,14 @@ class MySolution(Solution):
             url + "get_optimized_routes", params=solve_parameters, timeout=30
         )
         
+        # Try multiple times.
+        if solver_response.status_code != 200:
+            for _ in range(3):
+                solver_response = requests.get(
+                    url + "get_optimized_routes", params=solve_parameters, timeout=30
+                )
+                if solver_response.status_code == 200:
+                    break
         try:
             response = solver_response.json()["response"]["solver_response"]
         except:
@@ -288,7 +326,7 @@ class MySolution(Solution):
             cargo_dict = {}
             for cargo in state["active_cargo"]:
                 cargo_dict[cargo.id] = [cargo.location, cargo.destination]
-            print(cargo_dict)
+            # print(cargo_dict)
             picked_up = []
             locations = []
             for task_id in response["vehicle_data"][vehicle]["task_id"]:
