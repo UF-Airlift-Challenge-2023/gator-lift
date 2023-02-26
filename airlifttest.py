@@ -19,7 +19,7 @@ from airlift.envs import PerlinMapGenerator, PlainMapGenerator
 working_capacity = 5
 processing_time = 10
 num_airports = 20
-num_cargo = 20
+num_cargo = 25
 num_agents = 15
 num_drop_off_airports = 5
 num_pick_up_airports = 5
