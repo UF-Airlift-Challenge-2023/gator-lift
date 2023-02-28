@@ -26,8 +26,8 @@ num_pick_up_airports = 5
 soft_deadline_multiplier = 25
 hard_deadline_multiplier = 50
 
-num_dynamic_cargo = 0 #5
-dynamic_cargo_generation_rate = 0 #1/100
+num_dynamic_cargo = 10 #5
+dynamic_cargo_generation_rate = 1/100 #1/100
 malfunction_rate = 1 / 300
 min_duration = 10
 max_duration = 100
