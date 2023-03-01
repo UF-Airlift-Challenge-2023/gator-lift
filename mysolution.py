@@ -58,71 +58,74 @@ class MySolution(Solution):
         self.new_state = self.get_state(obs)
         self.down_routes = []
         self.prev_occupied = []
+        self.plane_to_track = None
+        self.current_state = {}
 
     def policies(self, obs, dones):
 
-        occupied_airports = list()
-        for plane in obs:
-            current_plane = obs[plane]
-            if current_plane['state'] != 2: # not 2 = at an airport somewhere
-                occupied_airports.append(current_plane['current_airport'])
-            else: # 2 = in flight to destination, therefore not in any airport
-                occupied_airports.append(current_plane['destination'])
+        # occupied_airports = list()
+        # for plane in obs:
+        #     current_plane = obs[plane]
+        #     if current_plane['state'] != 2: # not 2 = at an airport somewhere
+        #         occupied_airports.append(current_plane['current_airport'])
+        #     else: # 2 = in flight to destination, therefore not in any airport
+        #         occupied_airports.append(current_plane['destination'])
 
-        '''
-        2. iterate through list, perform calculation
-        --> if numPlanes(airport) >= working_capacity for all airports
-        ----> state[scenarioInfo][0][working_capacity]
-        ----> then edge = P*(1 + numPlanes(airport)//processingTime)
-        '''
+        # '''
+        # 2. iterate through list, perform calculation
+        # --> if numPlanes(airport) >= working_capacity for all airports
+        # ----> state[scenarioInfo][0][working_capacity]
+        # ----> then edge = P*(1 + numPlanes(airport)//processingTime)
+        # '''
 
-        # determine which airports are at capacity
-            # obtain processing time and working capacity
-            # index 0 of scenario is processing time, index 1 is working capacity
-        processing_time = self.get_state(obs)['scenario_info'][0][0]
-        working_capacity = self.get_state(obs)['scenario_info'][0][1]
-        state = self.get_state(obs)
-        self.multidigraph = oh.get_multidigraph(state)
+        # # determine which airports are at capacity
+        #     # obtain processing time and working capacity
+        #     # index 0 of scenario is processing time, index 1 is working capacity
+        # processing_time = self.get_state(obs)['scenario_info'][0][0]
+        # working_capacity = self.get_state(obs)['scenario_info'][0][1]
+        # state = self.get_state(obs)
+        # self.multidigraph = oh.get_multidigraph(state)
 
-        for airport_number in occupied_airports:
-            # number of planes per airport
-            numPlanes = occupied_airports.count(airport_number)
-            if numPlanes > working_capacity:
-                if airport_number not in self.prev_occupied:
-                    self.prev_occupied.append(airport_number)
-                    # self.new_change = True
-                difference = numPlanes - working_capacity
-                extra_wait_time = processing_time * (1 + (numPlanes // working_capacity))
-                connections = list(self.multidigraph.adj[airport_number].keys())
-                for connection in connections:
-                    for plane_type in self.multidigraph.adj[connection][airport_number]:
-                        self.multidigraph.adj[connection][airport_number][plane_type]["time"] += extra_wait_time
-            else:
-                if airport_number in self.prev_occupied:
-                    self.prev_occupied.remove(airport_number)
-                    # self.new_change = True
+        # for airport_number in occupied_airports:
+        #     # number of planes per airport
+        #     numPlanes = occupied_airports.count(airport_number)
+        #     if numPlanes > working_capacity:
+        #         if airport_number not in self.prev_occupied:
+        #             self.prev_occupied.append(airport_number)
+        #             # self.new_change = True
+        #         difference = numPlanes - working_capacity
+        #         extra_wait_time = processing_time * (1 + (numPlanes // working_capacity))
+        #         connections = list(self.multidigraph.adj[airport_number].keys())
+        #         for connection in connections:
+        #             for plane_type in self.multidigraph.adj[connection][airport_number]:
+        #                 self.multidigraph.adj[connection][airport_number][plane_type]["time"] += extra_wait_time
+        #     else:
+        #         if airport_number in self.prev_occupied:
+        #             self.prev_occupied.remove(airport_number)
+        #             # self.new_change = True
         
-        if (len(self.get_state(obs)["event_new_cargo"]) != 0):
-            # self.new_change = True
-            print("New cargo detected!")
+        # if (len(self.get_state(obs)["event_new_cargo"]) != 0):
+        #     # self.new_change = True
+        #     print("New cargo detected!")
         
-        if(self.new_change):
-            self.solver_response = self.process_state(obs)
-            self.new_state = self.get_state(obs)
-            self.new_change = False
+        # if(self.new_change):
+        #     self.solver_response = self.process_state(obs)
+        #     self.new_state = self.get_state(obs)
+        #     self.new_change = False
 
         
-        state = self.get_state(obs)
-        for type in state["route_map"]:
-            for node in list(dict(state["route_map"][type].adj).keys()):
-                for connection in list(dict(state["route_map"][type].adj[node]).keys()):
-                    if(state["route_map"][type].adj[node][connection]["mal"]!=0):
-                        if([node, connection] in self.down_routes):
-                            print("DOWN ROUTE: " + str([node, connection]))
-                        # print(node, connection, state["route_map"][type].adj[node][connection]["mal"])
+        # state = self.get_state(obs)
+        # for type in state["route_map"]:
+        #     for node in list(dict(state["route_map"][type].adj).keys()):
+        #         for connection in list(dict(state["route_map"][type].adj[node]).keys()):
+        #             if(state["route_map"][type].adj[node][connection]["mal"]!=0):
+        #                 if([node, connection] in self.down_routes):
+        #                     print("DOWN ROUTE: " + str([node, connection]))
+        #                 # print(node, connection, state["route_map"][type].adj[node][connection]["mal"])
         
         
-        my_action = self.process_response(obs)
+        # my_action = self.process_response(obs)
+        self.collect_current_status(obs)
         
         # Use the acion helper to generate an action
 
@@ -346,200 +349,196 @@ class MySolution(Solution):
 
         return response
     
-def set_task_data(self, state):
-    task_locations = []#[0]
-    delivery_pairs = []
-    demand = []#[0]
-    task_ids = []
-    task_time_windows = []#[[0,100000]]
-    processing_time = []
-    penalties = []
+    def set_task_data(self, state):
+        task_locations = []#[0]
+        delivery_pairs = []
+        demand = []#[0]
+        task_ids = []
+        task_time_windows = []#[[0,100000]]
+        processing_time = []
+        penalties = []
 
-    cargo_dict = {}
-    for cargo in state["active_cargo"]:
-        cargo_dict[cargo.id] = [cargo.location, cargo.destination]
-    
-    for cargo in state["active_cargo"]:
-        if(cargo.is_available):
-            location = len(task_locations)
-            task_locations.append(cargo_dict[cargo.id][0]-1)
-            destination = len(task_locations)
-            task_locations.append(cargo_dict[cargo.id][1]-1)
-            delivery_pairs.append([location,destination])
-            task_time_windows.append([cargo.earliest_pickup_time, cargo.soft_deadline])
-            task_time_windows.append([cargo.earliest_pickup_time, cargo.soft_deadline])
-            demand.append(cargo.weight)
-            demand.append(-cargo.weight)
-            task_ids.append(str(cargo.id))
-            task_ids.append(str(cargo.id))
-            processing_time.append(state["scenario_info"][0].processing_time)
-            processing_time.append(state["scenario_info"][0].processing_time)
-            penalties.append(100)
-            penalties.append(100)
-    
-    task_data = {
-            "task_locations": task_locations,
-            "demand": [demand],
-            "task_time_windows": task_time_windows,
-            "pickup_and_delivery_pairs": delivery_pairs,
-            "task_ids": task_ids,
-            # "service_time": processing_time,
-            "penalties": penalties
-        }
-    
-    return task_data
-    
-def set_waypoint_data(self, state):
-    waypoints = {}
-    multidigraph = oh.get_multidigraph(state)
-    for plane_type in state["plane_types"]:
-        waypoints[plane_type.id] = {"edges": [], "offsets": [], "weights": []}
-
-    nodes = list(dict(multidigraph.adj).keys())
-    print("  ", end =" ")
-    for node in nodes:
-        print("{:>3}".format(node), end =" ")
-    print()
-
-    for node in nodes:
-        print("{:>3}".format(node), end =" ")
-        connections = list(dict(multidigraph.adj[node]).keys())
-        for plane_type_id in list(waypoints.keys()):
-            waypoints[plane_type_id]["offsets"].append(len(waypoints[plane_type_id]["edges"]))
-        # size of weights is length of nodes.
-        weights = [0]*len(nodes)
-
-        for connection in connections:
-            conn_by_plane_type = multidigraph.adj[node][connection]
-            for plane_type_id in list(waypoints.keys()):
-                if(plane_type_id in conn_by_plane_type):
-                    weight = (multidigraph.adj[node][connection][plane_type_id]["time"]+state["scenario_info"][0].processing_time)
-                    if not multidigraph.adj[node][connection][plane_type_id]["route_available"]:
-                        weight += int(multidigraph.adj[node][connection][plane_type_id]["mal"])
-                    weights[connection-1] = weight
-                    waypoints[plane_type_id]["edges"].append(connection-1)
-                    waypoints[plane_type_id]["weights"].append(weight)
+        cargo_dict = {}
+        for cargo in state["active_cargo"]:
+            cargo_dict[cargo.id] = [cargo.location, cargo.destination]
         
-        for weight in weights:
-            # print with 5 characters
-            # and right align it
-            print("{:>3}".format(weight), end =" ")
+        for cargo in state["active_cargo"]:
+            if(cargo.is_available):
+                location = len(task_locations)
+                task_locations.append(cargo_dict[cargo.id][0]-1)
+                destination = len(task_locations)
+                task_locations.append(cargo_dict[cargo.id][1]-1)
+                delivery_pairs.append([location,destination])
+                task_time_windows.append([cargo.earliest_pickup_time, cargo.soft_deadline])
+                task_time_windows.append([cargo.earliest_pickup_time, cargo.soft_deadline])
+                demand.append(cargo.weight)
+                demand.append(-cargo.weight)
+                task_ids.append(str(cargo.id))
+                task_ids.append(str(cargo.id))
+                processing_time.append(state["scenario_info"][0].processing_time)
+                processing_time.append(state["scenario_info"][0].processing_time)
+                penalties.append(100)
+                penalties.append(100)
+        
+        task_data = {
+                "task_locations": task_locations,
+                "demand": [demand],
+                "task_time_windows": task_time_windows,
+                "pickup_and_delivery_pairs": delivery_pairs,
+                "task_ids": task_ids,
+                # "service_time": processing_time,
+                "penalties": penalties
+            }
+        
+        return task_data
+        
+    def set_waypoint_data(self, state):
+        waypoints = {}
+        multidigraph = oh.get_multidigraph(state)
+        for plane_type in state["plane_types"]:
+            waypoints[plane_type.id] = {"edges": [], "offsets": [], "weights": []}
+
+        nodes = list(dict(multidigraph.adj).keys())
+        print("  ", end =" ")
+        for node in nodes:
+            print("{:>3}".format(node), end =" ")
         print()
 
-    for plane_type_id in list(waypoints.keys()):
-        waypoints[plane_type_id]["offsets"].append(len(waypoints[plane_type_id]["edges"]))
-    return waypoints
+        for node in nodes:
+            print("{:>3}".format(node), end =" ")
+            connections = list(dict(multidigraph.adj[node]).keys())
+            for plane_type_id in list(waypoints.keys()):
+                waypoints[plane_type_id]["offsets"].append(len(waypoints[plane_type_id]["edges"]))
+            # size of weights is length of nodes.
+            weights = [0]*len(nodes)
 
-def set_fleet_data(self, state):
-    fleet_data = {"capacities":[],"vehicle_locations":[],"vehicle_types": [], "vehicle_ids":[], "drop_return_trips" : []}
-    for agent in state["agents"]:
-        if(state["agents"][agent]["state"] in [PlaneState.READY_FOR_TAKEOFF, PlaneState.WAITING]):
-            fleet_data["capacities"].append(state["agents"][agent]["max_weight"])
-            starting_position = state["agents"][agent]["current_airport"]-1
-            if(state["agents"][agent]["destination"]!=0):
-                starting_position = state["agents"][agent]["destination"]-1
-            fleet_data["vehicle_locations"].append([starting_position,state["agents"][agent]["destination"]])
-            fleet_data["vehicle_types"].append(state["agents"][agent]["plane_type"])
-            fleet_data["vehicle_ids"].append(agent)
-            fleet_data["drop_return_trips"].append(True)
-
-    # sort dictionary based on vehicle types
-    fleet_data["vehicle_types"], fleet_data["vehicle_locations"], fleet_data["capacities"], fleet_data["vehicle_ids"], fleet_data["drop_return_trips"] = zip(*sorted(zip(fleet_data["vehicle_types"], fleet_data["vehicle_locations"], fleet_data["capacities"], fleet_data["vehicle_ids"], fleet_data["drop_return_trips"])))
-    fleet_data["capacities"] = [fleet_data["capacities"]]
-    fleet_data["min_vehicles"] = 1
-
-    return fleet_data
-
-# def collect_current_status(self, obs):
-#     self.state = self.get_state(obs)
-#     transit_times = previous_data["transit_time_matrices"][0]
-#     task_locations = previous_data["task_locations"]
-#     vehicle_start_locations = [val[0] for val in previous_data["vehicle_locations"]]
-#     vehicle_return_locations = [val[1] for val in previous_data["vehicle_locations"]]
-    
-#     # Create a mapping between pickup and delivery
-#     pickup_of_delivery = {
-#         previous_data["delivery_indices"][i]: previous_data["pickup_indices"][i]
-#         for i in range(len(previous_data["pickup_indices"]))
-#     }
-    
-#     # Update vehicle earliest if needs to be changed to current time
-#     vehicle_earliest = [max(earliest, reroute_from_time) for earliest in previous_data["vehicle_earliest"]]
-    
-#     # Collect completed and partial set of tasks, so we can add partialy completed tasks back
-#     completed_tasks = []
-#     picked_up_but_not_delivered = {}
-#     picked_up_task_to_vehicle = {}
-    
-#     for veh_id, veh_data in optimized_route_data["vehicle_data"].items():
-#         route_len = len(veh_data['route'])
-#         task_len = len(veh_data["task_id"])
-#         vehicle_id = int(veh_id)
-    
-#         # In this case, all the tasks are already completed, or waiting on last task service time
-#         if veh_data['arrival_stamp'][-1] <= reroute_from_time:
-#             intra_task_id = task_len
-#         else:
-#             try:
-#                 # Look for a task that is yet to be completed
-#                 intra_task_id, time = next(
-#                     (i, el)
-#                     for i, el in enumerate(veh_data['arrival_stamp'])
-#                     if el > reroute_from_time
-#                 )
-#             except StopIteration:
-#                 # In case none of the tasks are completed
-#                 intra_task_id = 0
-#                 time = max(vehicle_earliest[vehicle_id], reroute_from_time)
-
-#         # All the tasks are completed and vehicle is on the way to return location or already reached
-
-#         picked_up_but_not_delivered[vehicle_id] = []
+            for connection in connections:
+                conn_by_plane_type = multidigraph.adj[node][connection]
+                for plane_type_id in list(waypoints.keys()):
+                    if(plane_type_id in conn_by_plane_type):
+                        weight = (multidigraph.adj[node][connection][plane_type_id]["time"]+state["scenario_info"][0].processing_time)
+                        if not multidigraph.adj[node][connection][plane_type_id]["route_available"]:
+                            weight += int(multidigraph.adj[node][connection][plane_type_id]["mal"])
+                        weights[connection-1] = weight
+                        waypoints[plane_type_id]["edges"].append(connection-1)
+                        waypoints[plane_type_id]["weights"].append(weight)
             
-#         # There are tasks that are still pending
-#         if intra_task_id < task_len:
-#             last_task = veh_data["task_id"][intra_task_id]
+            for weight in weights:
+                # print with 5 characters
+                # and right align it
+                print("{:>3}".format(weight), end =" ")
+            print()
+
+        for plane_type_id in list(waypoints.keys()):
+            waypoints[plane_type_id]["offsets"].append(len(waypoints[plane_type_id]["edges"]))
+        return waypoints
+
+    def set_fleet_data(self, state):
+        fleet_data = {"capacities":[],"vehicle_locations":[],"vehicle_types": [], "vehicle_ids":[], "drop_return_trips" : []}
+        for agent in state["agents"]:
+            if(state["agents"][agent]["state"] in [PlaneState.READY_FOR_TAKEOFF, PlaneState.WAITING]):
+                fleet_data["capacities"].append(state["agents"][agent]["max_weight"])
+                starting_position = state["agents"][agent]["current_airport"]-1
+                if(state["agents"][agent]["destination"]!=0):
+                    starting_position = state["agents"][agent]["destination"]-1
+                fleet_data["vehicle_locations"].append([starting_position,state["agents"][agent]["destination"]])
+                fleet_data["vehicle_types"].append(state["agents"][agent]["plane_type"])
+                fleet_data["vehicle_ids"].append(agent)
+                fleet_data["drop_return_trips"].append(True)
+
+        # sort dictionary based on vehicle types
+        fleet_data["vehicle_types"], fleet_data["vehicle_locations"], fleet_data["capacities"], fleet_data["vehicle_ids"], fleet_data["drop_return_trips"] = zip(*sorted(zip(fleet_data["vehicle_types"], fleet_data["vehicle_locations"], fleet_data["capacities"], fleet_data["vehicle_ids"], fleet_data["drop_return_trips"])))
+        fleet_data["capacities"] = [fleet_data["capacities"]]
+        fleet_data["min_vehicles"] = 1
+
+        return fleet_data
+    
+    def collect_current_status(self, obs):
+        state = self.get_state(obs)
+
+        self.current_state["airport_info"] = {}
+        for airport_id in range(1, len(state["route_map"][0].nodes)+1):
+            self.current_state["airport_info"][airport_id] = {}
+            self.current_state["airport_info"][airport_id]["cargo"] = []
+            self.current_state["airport_info"][airport_id]["planes"] = []
+        
+        if("cargo_info" not in self.current_state):
+            self.current_state["cargo_info"] = {}
+        all_cargo_ids = list(self.current_state["cargo_info"].keys())
+        for cargo in state["active_cargo"]:
+            if(cargo.id in all_cargo_ids):
+                all_cargo_ids.remove(cargo.id)
+            self.current_state["cargo_info"][cargo.id] = {}
+            self.current_state["cargo_info"][cargo.id]["location"] = cargo.location
+            self.current_state["cargo_info"][cargo.id]["destination"] = cargo.destination
+            self.current_state["cargo_info"][cargo.id]["pickup_time"] = cargo.earliest_pickup_time
+            self.current_state["cargo_info"][cargo.id]["hard_deadline"] = cargo.hard_deadline
+            self.current_state["cargo_info"][cargo.id]["soft_deadline"] = cargo.soft_deadline
+            self.current_state["cargo_info"][cargo.id]["weight"] = cargo.weight
+            self.current_state["cargo_info"][cargo.id]["status"] = "waiting"
+
+            if(cargo.location!=0):
+                self.current_state["airport_info"][cargo.location]["cargo"].append(cargo.id)
+
+        self.current_state["agent_info"] = {}
+        for agent_id in state["agents"]:
+            cargo_in_transit = []
+            self.current_state["agent_info"][agent_id] = {}
+            current_agent = state["agents"][agent_id]
+            next_action = current_agent["next_action"]
+            cargo_on_board = current_agent["cargo_onboard"]
+            plane_type_id = current_agent["plane_type"]
+            current_airport = current_agent["current_airport"]
+            plane_state = current_agent["state"]
+            cargo_to_load = next_action["cargo_to_load"]
+            cargo_to_unload = next_action["cargo_to_unload"]
+            destination = 0
+
+            if(plane_state in [PlaneState.PROCESSING]):
+                for cargo_id in cargo_to_unload:
+                    cargo_on_board.remove(cargo_id)
+                for cargo_id in cargo_to_load:
+                    cargo_on_board.append(cargo_id)
+                destination = next_action["destination"]
+            elif(plane_state in [PlaneState.MOVING]):
+                destination = current_agent["destination"]
+
+            cargo_in_transit.extend(cargo_on_board)
+
+            if(destination!=0):
+                current_airport = destination
+
+            self.current_state["agent_info"][agent_id]["start"] = current_airport
+            self.current_state["agent_info"][agent_id]["end"] = destination
+            self.current_state["agent_info"][agent_id]["cargo_in_transit"] = cargo_in_transit
+            self.current_state["agent_info"][agent_id]["state"] = plane_state
+            self.current_state["agent_info"][agent_id]["plane_type_id"] = plane_type_id
+            self.current_state["airport_info"][current_airport]["planes"].append(agent_id)
+
+            for cargo_id in cargo_in_transit:
+                if(cargo_id in all_cargo_ids):
+                    all_cargo_ids.remove(cargo_id)
+                self.current_state["cargo_info"][cargo_id]["status"] = "transit"
+                self.current_state["cargo_info"][cargo_id]["location"] = agent_id
+                self.current_state["airport_info"][current_airport]["cargo"].append(cargo_id)
+
+            for cargo_id in all_cargo_ids:
+                self.current_state["cargo_info"][cargo_id]["status"] = "completed"
+                self.current_state["cargo_info"][cargo_id]["location"] = self.current_state["cargo_info"][cargo_id]["destination"]
+
+        self.current_state["cost_graphs"] = {}
+        for plane_type_id in state["route_map"]:
+            self.current_state["cost_graphs"][plane_type_id] = []
+
+            for airport_id in range(1, len(state["route_map"][0].nodes)+1):
+                self.current_state["cost_graphs"][plane_type_id].append([0]*len(state["route_map"][0].nodes))
             
-#             # Update vehicle start location
-#             vehicle_start_locations[int(vehicle_id)] = task_locations[last_task]
-            
-#             # Update vehicle earliest
-#             vehicle_earliest[int(vehicle_id)] = min(
-#                 max(time, reroute_from_time), previous_data["vehicle_latest"][vehicle_id]
-#             )
-            
-#             for j in range(0, intra_task_id):
-#                 task = veh_data["task_id"][j]
-#                 if task in previous_data["pickup_indices"]:
-#                     picked_up_but_not_delivered[vehicle_id].append(task)
-#                     picked_up_task_to_vehicle[task] = vehicle_id
-#                 else:
-#                     # Moves any delivered pick-up tasks to completed.
-#                     corresponding_pickup = pickup_of_delivery[task]
-#                     picked_up_but_not_delivered[vehicle_id].remove(
-#                             corresponding_pickup
-#                     )
-#                     completed_tasks.append(corresponding_pickup)
-#                     completed_tasks.append(task)
-#                     picked_up_task_to_vehicle.pop(corresponding_pickup)
-#         else:
-#             completed_tasks.extend(veh_data["task_id"])
-#             # In this case vehicle is at last location about to finish the task,
-#             # so vehicle start location would last task location and accordingly the earliest vehicle time as well
-#             if (veh_data['arrival_stamp'][-1] == reroute_from_time) and (veh_data['arrival_stamp'][-1]+previous_data["task_service_time"][veh_data["task_id"][-1]] >= reroute_from_time):
-#                 vehicle_start_locations[vehicle_id] = task_locations[veh_data["task_id"][-1]]
-#                 vehicle_earliest[vehicle_id] = veh_data['arrival_stamp'][-1] + previous_data["task_service_time"][veh_data["task_id"][-1]] 
-#             else:
-#                 # In this case vehicle completed last task and may be enroute to vehicle return location or might have reached.
-#                 end_time = (
-#                     veh_data['arrival_stamp'][-1] + previous_data["task_service_time"][veh_data["task_id"][-1]] + transit_times[task_locations[veh_data["task_id"][-1]]][vehicle_return_locations[vehicle_id]]
-#                 )
-#                 time = max(end_time, reroute_from_time)
-#                 print("For vehicle ID updating", vehicle_id)
-#                 vehicle_start_locations[vehicle_id] = vehicle_return_locations[vehicle_id]
-#                 vehicle_earliest[vehicle_id] = min(time, previous_data["vehicle_earliest"][vehicle_id])
-                
-#     return (
-#         vehicle_earliest, vehicle_start_locations,
-#         vehicle_return_locations, completed_tasks,
-#         picked_up_but_not_delivered, picked_up_task_to_vehicle)
+            for airport_id in state["route_map"][plane_type_id]:
+                for destination_id in state["route_map"][plane_type_id][airport_id]:
+                    self.current_state["cost_graphs"][plane_type_id][airport_id-1][destination_id-1] = state["route_map"][plane_type_id][airport_id][destination_id]["time"]
+                    self.current_state["cost_graphs"][plane_type_id][destination_id-1][airport_id-1] += state["scenario_info"][0].processing_time * (1+(len(self.current_state["airport_info"][airport_id]["planes"]) // self.get_state(obs)['scenario_info'][0][1]))
+
+                    if(not state["route_map"][plane_type_id][airport_id][destination_id]["route_available"]):
+                        self.current_state["cost_graphs"][plane_type_id][airport_id-1][destination_id-1] += int(state["route_map"][plane_type_id].adj[airport_id][destination_id]["mal"])
+                    
+        
