@@ -61,6 +61,7 @@ class MySolution(Solution):
         self.task_data = {}
         self.solver_config = {}
         self.solve_parameters = {}
+        self.waypoint_graph = {}
 
     def policies(self, obs, dones):
 
@@ -141,6 +142,22 @@ class MySolution(Solution):
         for plane_type_id in self.current_state["cost_graphs"]:
             self.cost_matrix["cost_matrix"][int(plane_type_id)] = self.current_state["cost_graphs"][plane_type_id]
 
+    def get_cuopt_waypoint_graph(self):
+        self.waypoint_graph["waypoint_graph"] = {}
+        for plane_type_id in self.current_state["cost_graphs"]:
+            self.waypoint_graph["waypoint_graph"][int(plane_type_id)] = {}
+            self.waypoint_graph["waypoint_graph"][int(plane_type_id)]["weights"] = []
+            self.waypoint_graph["waypoint_graph"][int(plane_type_id)]["edges"] = []
+            self.waypoint_graph["waypoint_graph"][int(plane_type_id)]["offsets"] = [0]
+            for airport in self.current_state["cost_graphs"][plane_type_id]:
+                for destination_idx, current_cost in enumerate(airport):
+                    if(current_cost!=0 and current_cost!=float("inf")):
+                        self.waypoint_graph["waypoint_graph"][int(plane_type_id)]["weights"].append(current_cost)
+                        self.waypoint_graph["waypoint_graph"][int(plane_type_id)]["edges"].append(destination_idx)
+                self.waypoint_graph["waypoint_graph"][int(plane_type_id)]["offsets"].append(len(self.waypoint_graph["waypoint_graph"][int(plane_type_id)]["weights"]))
+                        
+
+
     def get_cuopt_fleet_data(self):
         self.fleet_data["vehicle_locations"] = []
         self.fleet_data["vehicle_ids"] = []
@@ -149,16 +166,13 @@ class MySolution(Solution):
 
         for agent in self.current_state["agent_info"]:
             current_agent = self.current_state["agent_info"][agent]
-            self.fleet_data["vehicle_locations"].append([current_agent["start"]-1, current_agent["end"]])
+            self.fleet_data["vehicle_locations"].append([current_agent["start"], current_agent["end"]])
             self.fleet_data["vehicle_ids"].append(agent)
             self.fleet_data["capacities"][0].append(current_agent["capacity"])
             self.fleet_data["vehicle_types"].append(current_agent["plane_type_id"])
 
-        # Sort by vehicle_types
-        self.fleet_data["vehicle_locations"] = [x for _,x in sorted(zip(self.fleet_data["vehicle_types"],self.fleet_data["vehicle_locations"]))]
-        self.fleet_data["vehicle_ids"] = [x for _,x in sorted(zip(self.fleet_data["vehicle_types"],self.fleet_data["vehicle_ids"]))]
-        self.fleet_data["capacities"] = [x for _,x in sorted(zip(self.fleet_data["vehicle_types"],self.fleet_data["capacities"]))]
-        self.fleet_data["vehicle_types"] = sorted(self.fleet_data["vehicle_types"])
+        # Sort all lists by vehicle type list
+        self.fleet_data["vehicle_types"], self.fleet_data["vehicle_locations"], self.fleet_data["vehicle_ids"], self.fleet_data["capacities"][0] = zip(*sorted(zip(self.fleet_data["vehicle_types"], self.fleet_data["vehicle_locations"], self.fleet_data["vehicle_ids"], self.fleet_data["capacities"][0])))
 
 
 
@@ -177,22 +191,22 @@ class MySolution(Solution):
             if(current_cargo["status"] in "completed"):
                 continue
 
-            self.task_data["task_locations"].append(current_cargo["location"]-1)
+            self.task_data["task_locations"].append(current_cargo["location"])
             self.task_data["task_ids"].append(str(cargo)+"_pickup")
             self.task_data["demand"][0].append(current_cargo["weight"])
             if(current_cargo["status"] in "transit"):
                 self.task_data["task_time_windows"].append([0, 0])
             else:
-                self.task_data["task_time_windows"].append([current_cargo["pickup_time"], current_cargo["soft_deadline"]])
+                self.task_data["task_time_windows"].append([current_cargo["pickup_time"], current_cargo["hard_deadline"]])
             if(current_cargo["carrier"]!=""):
-                self.task_data["order_vehicle_match"].append({"order_id" : len(self.task_data["task_ids"])-1, "vehicle_ids":[self.fleet_data["vehicle_ids"].index([current_cargo["carrier"]])]})
+                self.task_data["order_vehicle_match"].append({"order_id" : len(self.task_data["task_ids"])-1, "vehicle_ids":[self.fleet_data["vehicle_ids"].index(current_cargo["carrier"])]})
 
-            self.task_data["task_locations"].append(current_cargo["destination"]-1)
+            self.task_data["task_locations"].append(current_cargo["destination"])
             self.task_data["task_ids"].append(str(cargo)+"_delivery")
             self.task_data["demand"][0].append(-current_cargo["weight"])
-            self.task_data["task_time_windows"].append([current_cargo["pickup_time"], current_cargo["soft_deadline"]])
+            self.task_data["task_time_windows"].append([current_cargo["pickup_time"], current_cargo["hard_deadline"]])
             if(current_cargo["carrier"]!=""):
-                self.task_data["order_vehicle_match"].append({"order_id" : len(self.task_data["task_ids"])-1, "vehicle_ids":[self.fleet_data["vehicle_ids"].index([current_cargo["carrier"]])]})
+                self.task_data["order_vehicle_match"].append({"order_id" : len(self.task_data["task_ids"])-1, "vehicle_ids":[self.fleet_data["vehicle_ids"].index(current_cargo["carrier"])]})
 
             self.task_data["pickup_and_delivery_pairs"].append([len(self.task_data["task_ids"])-2, len(self.task_data["task_ids"])-1])
 
@@ -218,9 +232,15 @@ class MySolution(Solution):
     def get_solution(self):
 
         # SET Cost Matrix (AKA Time Matrix)
-        self.get_cuopt_cost_matrix()
-        matrix_response = requests.post(
-            url + "set_cost_matrix", params=data_params, json=self.cost_matrix
+        # self.get_cuopt_cost_matrix()
+        # matrix_response = requests.post(
+        #     url + "set_cost_matrix", params=data_params, json=self.cost_matrix
+        # )
+
+        # SET Waypoint Graph
+        self.get_cuopt_waypoint_graph()
+        graph_response = requests.post(
+            url + "set_cost_waypoint_graph", params=data_params, json=self.waypoint_graph
         )
 
         # SET Fleet Data
@@ -241,10 +261,15 @@ class MySolution(Solution):
             url + "set_solver_config", params=data_params, json=self.solver_config
         )
 
-        # SOLVE
+        # SOLVE 
         solve_response = requests.get(
             url + "get_optimized_routes", params=data_params, json=self.solve_parameters
         )
+
+        if(solve_response.status_code == 409):
+            # Could not find valid solution
+            print("Could not find valid solution")
+            return
 
         self.solution = solve_response.json()
 
@@ -503,9 +528,9 @@ class MySolution(Solution):
 
         self.current_state["airport_info"] = {}
         for airport_id in range(1, len(state["route_map"][0].nodes)+1):
-            self.current_state["airport_info"][airport_id] = {}
-            self.current_state["airport_info"][airport_id]["cargo"] = []
-            self.current_state["airport_info"][airport_id]["planes"] = []
+            self.current_state["airport_info"][airport_id-1] = {}
+            self.current_state["airport_info"][airport_id-1]["cargo"] = []
+            self.current_state["airport_info"][airport_id-1]["planes"] = []
         
         if("cargo_info" not in self.current_state):
             self.current_state["cargo_info"] = {}
@@ -514,8 +539,8 @@ class MySolution(Solution):
             if(cargo.id in all_cargo_ids):
                 all_cargo_ids.remove(cargo.id)
             self.current_state["cargo_info"][cargo.id] = {}
-            self.current_state["cargo_info"][cargo.id]["location"] = cargo.location
-            self.current_state["cargo_info"][cargo.id]["destination"] = cargo.destination
+            self.current_state["cargo_info"][cargo.id]["location"] = max(0, cargo.location-1)
+            self.current_state["cargo_info"][cargo.id]["destination"] = max(0, cargo.destination-1)
             self.current_state["cargo_info"][cargo.id]["pickup_time"] = cargo.earliest_pickup_time
             self.current_state["cargo_info"][cargo.id]["hard_deadline"] = cargo.hard_deadline
             self.current_state["cargo_info"][cargo.id]["soft_deadline"] = cargo.soft_deadline
@@ -524,7 +549,7 @@ class MySolution(Solution):
             self.current_state["cargo_info"][cargo.id]["carrier"] = ""
 
             if(cargo.location!=0):
-                self.current_state["airport_info"][cargo.location]["cargo"].append(cargo.id)
+                self.current_state["airport_info"][cargo.location-1]["cargo"].append(cargo.id)
 
         self.current_state["agent_info"] = {}
         for agent_id in state["agents"]:
@@ -534,7 +559,7 @@ class MySolution(Solution):
             next_action = current_agent["next_action"]
             cargo_on_board = current_agent["cargo_onboard"]
             plane_type_id = current_agent["plane_type"]
-            current_airport = current_agent["current_airport"]
+            current_airport = max(0, current_agent["current_airport"]-1)
             plane_state = current_agent["state"]
             cargo_to_load = next_action["cargo_to_load"]
             cargo_to_unload = next_action["cargo_to_unload"]
@@ -542,12 +567,13 @@ class MySolution(Solution):
 
             if(plane_state in [PlaneState.PROCESSING]):
                 for cargo_id in cargo_to_unload:
-                    cargo_on_board.remove(cargo_id)
+                    if(cargo_id in cargo_on_board):
+                        cargo_on_board.remove(cargo_id)
                 for cargo_id in cargo_to_load:
                     cargo_on_board.append(cargo_id)
-                destination = next_action["destination"]
+                destination = max(next_action["destination"]-1, 0)
             elif(plane_state in [PlaneState.MOVING]):
-                destination = current_agent["destination"]
+                destination = max(current_agent["destination"]-1,0)
 
             cargo_in_transit.extend(cargo_on_board)
 
@@ -580,13 +606,13 @@ class MySolution(Solution):
             self.current_state["cost_graphs"][plane_type_id] = []
 
             for airport_id in range(1, len(state["route_map"][0].nodes)+1):
-                self.current_state["cost_graphs"][plane_type_id].append([100]*len(state["route_map"][0].nodes))
+                self.current_state["cost_graphs"][plane_type_id].append([float('inf')]*len(state["route_map"][0].nodes))
                 self.current_state["cost_graphs"][plane_type_id][airport_id-1][airport_id-1] = 0
             
             for airport_id in state["route_map"][plane_type_id]:
                 for destination_id in state["route_map"][plane_type_id][airport_id]:
                     self.current_state["cost_graphs"][plane_type_id][airport_id-1][destination_id-1] = state["route_map"][plane_type_id][airport_id][destination_id]["time"]
-                    self.current_state["cost_graphs"][plane_type_id][destination_id-1][airport_id-1] += state["scenario_info"][0].processing_time * (1+(len(self.current_state["airport_info"][airport_id]["planes"]) // self.get_state(obs)['scenario_info'][0][1]))
+                    self.current_state["cost_graphs"][plane_type_id][destination_id-1][airport_id-1] += state["scenario_info"][0].processing_time * (1+(len(self.current_state["airport_info"][airport_id-1]["planes"]) // self.get_state(obs)['scenario_info'][0][1]))
 
                     if(not state["route_map"][plane_type_id][airport_id][destination_id]["route_available"]):
                         self.current_state["cost_graphs"][plane_type_id][airport_id-1][destination_id-1] += int(state["route_map"][plane_type_id].adj[airport_id][destination_id]["mal"])
